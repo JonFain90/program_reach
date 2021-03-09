@@ -1,0 +1,70 @@
+---
+title: "Visualizing Program Reach Across Many Countries"
+output:
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r packages, echo = FALSE, message=FALSE}
+library(tidyverse)
+library(plotly)
+```
+
+```{r load in and reshape data}
+
+TR_Data <- read_csv("Total Reach Analysis.csv")
+
+TR1 <- TR_Data %>%
+  gather("year", "TR", 2:5)
+
+```
+
+
+## Background
+
+I wanted to find a way to visualize and compare a fairly large amount of program reach data a simple way. I also wanted to display it equitably, as there is a possibility of diminishing the reach of countries with smaller programs and less funding if they are compared to larger countries with bigger budgets and larger reach. Rather, it made more sense to create an even playing field by visualizing data in the context of historical programmatic reach of one country, rather than against the figures of another. To do this, I categorized each country's annual data into low medium, or high. if the data fell below the 25th percentile it was considered low,  above 75th is high and in-between 25th and 75th Percentiles is medium. I then visualized each category by country and year in an interactive heat map. This may be too reductive for in-depth insights across countries, but for any comparisons I would likely use faceted bar graphs across countries. 
+
+```{r pressure, message=FALSE, fig.align='center',out.extra='angle=90', out.width="100%"}
+
+#Calculate 25th and 75th percentiles of  data. 
+#Below 25th P is low,  above 75th P is high and in between 25th AND 75th Percentiles is average. 
+TR_perc <- TR1 %>% 
+  group_by(Country) %>% mutate(TR_factor = cut(TR, quantile(TR, c(0, .25, .75, 1)), 
+                                                         labels = c('Low', 'Medium', 'High'), 
+                                                         include.lowest = TRUE))
+
+#Set gradient colors for categorical variables
+colors <- c("Low" = "slategray2" , "Medium" = "slategray3", "High" = "slategray4")
+
+
+TR_tile <- ggplot(TR_perc, aes(Country, year, text = paste0(  
+  "<b>","Country:", Country, "</b>", "<br>",
+  "Year:", year, "<br>",
+  "Designation: ", TR_factor, "<br>",
+   "Total Reach: ", scales::comma(TR, 1), "<br>"))) + 
+  geom_tile(aes(fill = TR_factor),colour = "white", na.rm = TRUE) +
+  scale_fill_manual(values  = colors) +
+  guides(fill=guide_legend(title="Total Reach")) +
+  theme_minimal() + 
+  labs(y = "", x = "") +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  coord_flip()
+
+
+ggplotly(TR_tile, tooltip = c("text")) %>%
+  config(displayModeBar = F) %>%
+layout(legend = list(orientation = "h", x = 0.3, y = -0.1))
+  
+
+
+```
+## Correlation between reach and budget
+
+
+
+
+## Predicting reach using budget 
